@@ -4,6 +4,7 @@ Shader "Unlit/TextureShader"
    {
        _MainTex("Main Texture", 2D) = "white"{}
        _Color ("Main Color", Color) = (1,1,1,1)
+       _Height ("Height", Float) = 0.1
    }
    SubShader
    {
@@ -22,6 +23,7 @@ Shader "Unlit/TextureShader"
            uniform half4 _Color;
            uniform sampler2D _MainTex;
            uniform float4 _MainTex_ST;
+           uniform float _Height;
 
 
           struct VertexInput
@@ -41,7 +43,7 @@ Shader "Unlit/TextureShader"
            {
                VertexOutput o;
                float displacement = tex2Dlod(_MainTex, v.texcoord* _MainTex_ST);
-               o.pos = UnityObjectToClipPos(v.vertex + (v.normal * displacement*0.1f));
+               o.pos = UnityObjectToClipPos(v.vertex + (v.normal * displacement* _Height));
                o.texcoord.xy = (v.texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw);
                return o;
            }
