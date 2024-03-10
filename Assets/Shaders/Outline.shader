@@ -1,96 +1,108 @@
-Shader "Unlit/Outline"
-{
-    Properties
-    {
-        _MainTex("Main Texture", 2D) = "white" {}
-        _Color("Main Color", Color) = (1, 1, 1, 1)
-        _Outline("Outline Width", Range(0.001, 0.1)) = 0.01
-        _OutlineColor("Outline Color", Color) = (0, 0, 0, 1)
-    }
+Shader "Unlit/OutlineShader"
+{ 
+    Properties{
+        _Color("Color",Color) = (1,1,1,1)
+        _MainTex("Main Texture", 2D) = "white"{}
+        
+        _Outline("Outline", Float) = 0.1
+        _OutlineColor("OutlineColor", Color) = (0,0,0,250)
 
+
+    }
     SubShader
     {
-        Tags
-        {
-            "Queue" = "Overlay"
-            "IgnoreProjector" = "True"
-            "RenderType" = "Overlay"
+        Tags { 
+            "Queue" = "Transparent"
+            "RenderType"="Transparent" 
+            "IgnoreProjector"="True"
         }
-
+       
         Pass
         {
             Blend SrcAlpha OneMinusSrcAlpha
             CGPROGRAM
             #pragma vertex vert
-            #pragma exclude_renderers gles xbox360 ps3
+            #pragma fragment frag
+            uniform half4 _Color;
+            uniform sampler2D _MainTex;
+            uniform float4 _MainTex_ST;
+            
+
             #include "UnityCG.cginc"
 
-            struct appdata
+            struct VertexInput
             {
-                float4 vertex : POSITION;
+                float4 vertex:POSITION;
+                float4 texcoord: TEXCOORD0;
+
             };
 
-            struct v2f
+            struct VertexOutput
             {
-                float4 pos : POSITION;
+                float4 pos:SV_POSITION;
+                float4 texcoord: TEXCOORD0;
             };
 
-            float4 _Color;
-
-            v2f vert(appdata v)
+            VertexOutput vert(VertexInput v)
             {
-                v2f o;
+                VertexOutput o;
                 o.pos = UnityObjectToClipPos(v.vertex);
+                o.texcoord.xy = (v.texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw);
                 return o;
             }
 
-            half4 frag(v2f i) : COLOR
+            half4 frag(VertexOutput i) : COLOR
             {
-                return _Color * tex2D(_MainTex, i.pos.xy / i.pos.w);
+            return tex2D(_MainTex, i.texcoord) * _Color;
             }
             ENDCG
         }
-        
-        ZWrite Off
-        Cull Front
 
         Pass
         {
+            Cull Front
+            ZWrite off
+            Blend SrcAlpha OneMinusSrcAlpha
             CGPROGRAM
             #pragma vertex vert
-            #pragma exclude_renderers gles xbox360 ps3
             #pragma fragment frag
+            uniform half4 _Color;
+            uniform sampler2D _MainTex;
+            uniform float4 _MainTex_ST;
+            uniform half4 _OutlineColor;
+            uniform float _Outline;
 
-            struct appdata
+            #include "UnityCG.cginc"
+
+            struct VertexInput
             {
-                float4 vertex : POSITION;
+                float4 vertex:POSITION;
+                float4 texcoord: TEXCOORD0;
+
             };
 
-            struct v2f
+            struct VertexOutput
             {
-                float4 pos : POSITION;
+                float4 pos:SV_POSITION;
+                float4 texcoord: TEXCOORD0;
             };
 
-            float _Outline;
-            float4 _OutlineColor;
-
-            v2f vert(appdata v)
+            VertexOutput vert(VertexInput v)
             {
-                float4x4 modelView = UnityObjectToWorld;
-                float4 originalPos = mul(modelView, v.vertex);
-                float4 offset = _Outline * originalPos;
-                v.vertex.xyz += offset.xyz;
-
-                v2f o;
-                o.pos = UnityObjectToClipPos(v.vertex);
+                VertexOutput o;
+                o.pos = UnityObjectToClipPos(v.vertex*_Outline);
+                o.texcoord.xy = (v.texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw);
                 return o;
             }
 
-            half4 frag(v2f i) : COLOR
+            half4 frag(VertexOutput i) : COLOR
             {
-                return _OutlineColor;
+            return tex2D(_MainTex, i.texcoord) * _OutlineColor;
             }
             ENDCG
         }
+
+
+        
     }
 }
